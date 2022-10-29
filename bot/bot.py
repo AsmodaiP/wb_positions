@@ -27,7 +27,7 @@ def help(update, context):
 
 def search(update, context):
     update.message.reply_text(
-        'Введите артикул, поисковой запрос  и адресс разделяя их абзацем! (Enter)'
+        'Введите артикул, поисковой запрос  и адресса (один или несколько) разделяя их абзацем! (Enter)'
         '\nПример: \n123456'
         '\nКроссовки\n'
         'Москва, ул. Ленина, д. 1')
@@ -36,8 +36,10 @@ def search(update, context):
 
 def get_query_and_send_position(update, context):
     try:
-        article, query, address = update.message.text.split('\n')
-        article, query, address = article.strip(), query.strip(), address.strip()
+        article, query, *addresses = update.message.text.split('\n')
+
+        article, query = article.strip(), query.strip()
+        addresses = [address.strip() for address in addresses if address.strip()]
         try:
             article = int(article)
         except ValueError:
@@ -45,10 +47,10 @@ def get_query_and_send_position(update, context):
 
         context.user_data['article'] = article
         context.user_data['query'] = query
-        context.user_data['address'] = address
-    except Exception:
-        update.message.reply_text('Неверный формат запроса!')
-        return cancel()
+        context.user_data['addresses'] = addresses
+    except Exception as e:
+        update.message.reply_text('Неверный формат ввода! Ошибка: {}'.format(e))
+        return cancel(update, context)
     return send_position(update, context)
 
 
@@ -59,9 +61,16 @@ def cancel(update, context):
 
 
 def send_position(update, context):
-    pos = position.get_position(context.user_data['query'],
-                                context.user_data['address'], context.user_data['article'])
-    update.message.reply_text('Позиция: {}'.format(pos), reply_markup=BOT_MAIN_MENU)
+    query = context.user_data['query']
+    article = context.user_data['article']
+    addresses = context.user_data['addresses']
+    result = {adress: position.get_position(query, adress, article) for adress in addresses}
+    print(result)
+    msg = ''
+    for address, pos in result.items():
+        msg += '{}: {}\n'.format(address, pos)
+
+    update.message.reply_text(msg, reply_markup=BOT_MAIN_MENU)
     return ConversationHandler.END
 
 
