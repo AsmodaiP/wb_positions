@@ -1,5 +1,3 @@
-import json
-
 import requests
 
 from db.repositories import pickup_repository
@@ -45,7 +43,6 @@ def parser(query, dst, target_id):
             "&spp=0"
         if page < 500:
             r = requests.get(url=url, headers=headers)
-            html_cod = r.text
             try:
                 products = r.json()['data']['products']
                 if len(products) > 0:
@@ -57,9 +54,7 @@ def parser(query, dst, target_id):
                         position += 1
             except KeyError:
                 return None
-            except Exception as ex:
-                print(f"ошибка {ex}")
-                print(json.loads(html_cod))
+            except Exception:
                 flag = False
             finally:
                 page += 1

@@ -1,3 +1,4 @@
+
 from constants import BOT_MAIN_MENU, TELEGRAM_TOKEN
 from telegram import Bot
 from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, Updater
@@ -10,20 +11,28 @@ from utils.werocket.get_by_inside_article import get_article_by_inside_article
 bot = Bot(token=TELEGRAM_TOKEN)
 
 
+def add_user_to_db_if_not_exists(func):
+    def wrapper(update, context):
+        chat_id = update.message.chat_id
+        username = update.message.chat.username
+        first_name = update.message.chat.first_name
+        last_name = update.message.chat.last_name
+        user_repository.create(chat_id, username, first_name, last_name)
+        session.commit()
+        return func(update, context)
+    return wrapper
+
+
+@add_user_to_db_if_not_exists
 def start(update, context):
-    chat_id = update.message.chat_id
-    username = update.message.chat.username
-    first_name = update.message.chat.first_name
-    last_name = update.message.chat.last_name
-    user = user_repository.create(chat_id, username, first_name, last_name)
-    session.commit()
-    update.message.reply_text('Hello, {}!'.format(user.first_name), reply_markup=BOT_MAIN_MENU)
+    update.message.reply_text('Добро пожаловать в бота поиска позиций!', reply_markup=BOT_MAIN_MENU)
 
 
 def help(update, context):
     update.message.reply_text('Help!')
 
 
+@add_user_to_db_if_not_exists
 def search(update, context):
     update.message.reply_text(
         'Введите артикул, поисковой запрос  и адресса (один или несколько) разделяя их абзацем! (Enter)'
@@ -63,10 +72,14 @@ def send_position(update, context):
     query = context.user_data['query']
     article = context.user_data['article']
     addresses = context.user_data['addresses']
-    result = {adress: position.get_position(query, adress, article) for adress in addresses}
-    msg = ''
+    result = {}
+    for address in addresses:
+        pos = position.get_position(query, address, article)
+        update.message.reply_text('Адрес: {}\nРезультат: {}'.format(address, pos))
+        result[address] = pos
+    msg = 'Результаты поиска: \n'
     for address, pos in result.items():
-        msg += '{}: {}\n'.format(address, pos)
+        msg += '{}:  {}\n'.format(address, pos)
         user_queries_repository.create(
             user_id=update.message.chat_id,
             query=query,
