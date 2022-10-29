@@ -107,11 +107,11 @@ def send_popular_query(update, context):
     msg = 'Запрос: количество'
     for query in popular_query:
         if len(msg) + len(query) > 3000:
-            update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+            update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=BOT_MAIN_MENU)
             return ConversationHandler.END
         msg += '\n<code>{}</code>: {}'.format(query['text'], query['requestCount'])
 
-    update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+    update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=BOT_MAIN_MENU)
     return ConversationHandler.END
 
 
