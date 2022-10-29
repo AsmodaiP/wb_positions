@@ -18,9 +18,9 @@ def add_user_to_db_if_not_exists(func):
     def wrapper(update, context):
         chat_id = update.message.chat_id
         username = update.message.chat.username
-        first_name = update.message.chat.first_name
-        last_name = update.message.chat.last_name
-        user_repository.create(chat_id, username, first_name, last_name)
+        first_name = update.message.chat.first_name or ''
+        last_name = update.message.chat.last_name or ''
+        user_repository.create_or_update(chat_id, username, first_name, last_name)
         session.commit()
         return func(update, context)
     return wrapper

@@ -23,7 +23,7 @@ class BaseRepository:
 
 
 class TelegramUserRepository(BaseRepository):
-    def create(self, chat_id, username, first_name, last_name):
+    def create_or_update(self, chat_id, username, first_name, last_name):
         if self.get(chat_id):
             return self.update(chat_id, username=username, first_name=first_name, last_name=last_name)
         date = datetime.datetime.now()
