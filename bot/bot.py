@@ -101,6 +101,10 @@ def get_query(update, context):
     return 'get_query'
 
 
+def get_position_conversation_start(update, context):
+    update.message.reply_text('Введите артикул ')
+
+
 def send_popular_query(update, context):
     query = update.message.text
     popular_query = get_popular_query(query)
@@ -115,6 +119,70 @@ def send_popular_query(update, context):
     return ConversationHandler.END
 
 
+def get(update, context):
+    context.user_data['query'] = update.message.text
+    update.message.reply_text('Введите артикул')
+    return 'get_article_and_send_position'
+
+
+def get_more_popular_query(update, context):
+    try:
+        article, query, *addresses = update.message.text.split('\n')
+
+        article, query = article.strip(), query.strip()
+        addresses = [address.strip() for address in addresses if address.strip()]
+        try:
+            article = int(article)
+        except ValueError:
+            article = int(get_article_by_inside_article(article))
+
+        context.user_data['article'] = article
+        context.user_data['query'] = query
+        context.user_data['addresses'] = addresses
+    except Exception as e:
+        update.message.reply_text('Неверный формат ввода! Ошибка: {}'.format(e))
+        return cancel(update, context)
+
+    return send_more_popular_position(update, context)
+
+
+def send_more_popular_position(update, context):
+    try:
+        article, query, *addresses = update.message.text.split('\n')
+
+        article, query = article.strip(), query.strip()
+        addresses = [address.strip() for address in addresses if address.strip()]
+        try:
+            article = int(article)
+        except ValueError:
+            article = int(get_article_by_inside_article(article))
+
+        context.user_data['article'] = article
+        context.user_data['query'] = query
+        context.user_data['addresses'] = addresses
+    except Exception as e:
+        update.message.reply_text('Неверный формат ввода! Ошибка: {}'.format(e))
+        return cancel(update, context)
+
+    queries = get_popular_query(query)[:10]
+    result = {query['text']: {} for query in queries}
+    for address in addresses:
+        for query in queries:
+            pos = position.get_position(query['text'], address, article)
+            result[query['text']][address] = pos
+            update.message.reply_text(
+                'Адрес: {}\nЗапрос: {}\nРезультат: {}'.format(address, query['text'], pos))
+        msg = 'Результаты поиска: \n Адрес: {}\n'.format(address)
+
+    for address in addresses:
+        msg = 'Результаты поиска: \n'
+        msg += 'Адрес: {}\n'.format(address)
+        for query in queries:
+            msg += f'{query["text"]}: {result[query["text"]][address]}\n'
+        update.message.reply_text(msg, reply_markup=BOT_MAIN_MENU)
+    return ConversationHandler.END
+
+
 get_position_conversation = ConversationHandler(
     entry_points=[MessageHandler(Filters.text(['Поиск']), search)],
     states={
@@ -124,12 +192,22 @@ get_position_conversation = ConversationHandler(
 )
 
 get_popular_query_conversation = ConversationHandler(
-    entry_points=[MessageHandler(Filters.text(['Популярные запросы']), get_query)],
+    entry_points=[MessageHandler(Filters.text(['Популярные запросы']), search)],
     states={
-        'get_query': [MessageHandler(Filters.text, send_popular_query)],
+        'get_query_and_send_position': [MessageHandler(Filters.text, get_more_popular_query)],
     },
     fallbacks=[CommandHandler('cancel', cancel)],
 )
+
+
+search_more_popular_query_conversation = ConversationHandler(
+    entry_points=[MessageHandler(Filters.text(['Поиск по популярным запросам']), search)],
+    states={
+        'get_query_and_send_position': [MessageHandler(Filters.text, send_more_popular_position)],
+    },
+    fallbacks=[CommandHandler('cancel', cancel)],
+)
+
 
 updater = Updater(token=TELEGRAM_TOKEN)
 for command, handler in [
@@ -141,5 +219,6 @@ for command, handler in [
 
 updater.dispatcher.add_handler(get_position_conversation)
 updater.dispatcher.add_handler(get_popular_query_conversation)
+updater.dispatcher.add_handler(search_more_popular_query_conversation)
 updater.start_polling()
 updater.idle()

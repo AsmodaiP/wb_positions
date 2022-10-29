@@ -15,6 +15,11 @@ BOT_MAIN_MENU = ReplyKeyboardMarkup(
             KeyboardButton("Поиск"),
             KeyboardButton("Популярные запросы"),
         ],
+        [
+            KeyboardButton("Поиск по популярным запросам"),
+        ]
+
+
     ],
     resize_keyboard=True,
 )
