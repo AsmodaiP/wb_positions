@@ -1,6 +1,9 @@
-from dotenv import load_dotenv
+"""Constants for the bot."""
+
 import os
-from telegram import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+
+from dotenv import load_dotenv
+from telegram import KeyboardButton, ReplyKeyboardMarkup
 
 load_dotenv()
 
@@ -10,7 +13,7 @@ BOT_MAIN_MENU = ReplyKeyboardMarkup(
     [
         [
             KeyboardButton("Поиск"),
-            KeyboardButton("Избранное"),
+            KeyboardButton("Популярные запросы"),
         ],
     ],
     resize_keyboard=True,

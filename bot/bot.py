@@ -1,17 +1,20 @@
+"""Module  with bot  handlers  and  commands."""
 
 from constants import BOT_MAIN_MENU, TELEGRAM_TOKEN
-from telegram import Bot
+from telegram import Bot, ParseMode
 from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, Updater
 
 import utils.position as position
 from db.db import session
 from db.repositories import user_queries_repository, user_repository
+from utils.get_popular_query import get_popular_query
 from utils.werocket.get_by_inside_article import get_article_by_inside_article
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
 
 def add_user_to_db_if_not_exists(func):
+    """Add user to db if not exists decorator."""
     def wrapper(update, context):
         chat_id = update.message.chat_id
         username = update.message.chat.username
@@ -25,10 +28,12 @@ def add_user_to_db_if_not_exists(func):
 
 @add_user_to_db_if_not_exists
 def start(update, context):
+    """Send a message when the command /start is issued."""
     update.message.reply_text('Добро пожаловать в бота поиска позиций!', reply_markup=BOT_MAIN_MENU)
 
 
 def help(update, context):
+    """Send a message when the command /help is issued."""
     update.message.reply_text('Help!')
 
 
@@ -91,6 +96,25 @@ def send_position(update, context):
     return ConversationHandler.END
 
 
+def get_query(update, context):
+    update.message.reply_text('Введите поисковой запрос')
+    return 'get_query'
+
+
+def send_popular_query(update, context):
+    query = update.message.text
+    popular_query = get_popular_query(query)
+    msg = 'Запрос: количество'
+    for query in popular_query:
+        if len(msg) + len(query) > 3000:
+            update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+            return ConversationHandler.END
+        msg += '\n<code>{}</code>: {}'.format(query['text'], query['requestCount'])
+
+    update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+    return ConversationHandler.END
+
+
 get_position_conversation = ConversationHandler(
     entry_points=[MessageHandler(Filters.text(['Поиск']), search)],
     states={
@@ -99,6 +123,13 @@ get_position_conversation = ConversationHandler(
     fallbacks=[CommandHandler('cancel', cancel)],
 )
 
+get_popular_query_conversation = ConversationHandler(
+    entry_points=[MessageHandler(Filters.text(['Популярные запросы']), get_query)],
+    states={
+        'get_query': [MessageHandler(Filters.text, send_popular_query)],
+    },
+    fallbacks=[CommandHandler('cancel', cancel)],
+)
 
 updater = Updater(token=TELEGRAM_TOKEN)
 for command, handler in [
@@ -107,6 +138,8 @@ for command, handler in [
 ]:
     updater.dispatcher.add_handler(CommandHandler(command, handler))
 
+
 updater.dispatcher.add_handler(get_position_conversation)
+updater.dispatcher.add_handler(get_popular_query_conversation)
 updater.start_polling()
 updater.idle()
