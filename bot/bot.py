@@ -192,9 +192,9 @@ get_position_conversation = ConversationHandler(
 )
 
 get_popular_query_conversation = ConversationHandler(
-    entry_points=[MessageHandler(Filters.text(['Популярные запросы']), search)],
+    entry_points=[MessageHandler(Filters.text(['Популярные запросы']), get_query)],
     states={
-        'get_query_and_send_position': [MessageHandler(Filters.text, get_more_popular_query)],
+        'get_query': [MessageHandler(Filters.text, send_popular_query)],
     },
     fallbacks=[CommandHandler('cancel', cancel)],
 )
