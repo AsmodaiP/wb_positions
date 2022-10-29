@@ -1,14 +1,11 @@
+from constants import BOT_MAIN_MENU, TELEGRAM_TOKEN
 from telegram import Bot
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
+from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, Updater
 
-# from db.db import session
-# from db.repositories import UserRepository
-# from constants import TOKEN
-import datetime
-from db.repositories import TelegramUserRepository
-from db.db import session
-from constants import TELEGRAM_TOKEN, BOT_MAIN_MENU, SKIP_MENU
 import utils.position as position
+from db.db import session
+from db.repositories import TelegramUserRepository
+from utils.werocket.get_by_inside_article import get_article_by_inside_article
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
@@ -28,44 +25,42 @@ def help(update, context):
     update.message.reply_text('Help!')
 
 
-
-
 def search(update, context):
-    update.message.reply_text('Введите поисковой запрос!')
-    return 'get_query'
+    update.message.reply_text(
+        'Введите артикул, поисковой запрос  и адресс разделяя их абзацем! (Enter)'
+        '\nПример: \n123456'
+        '\nКроссовки\n'
+        'Москва, ул. Ленина, д. 1')
+    return 'get_query_and_send_position'
 
 
-def get_query(update, context):
-    query = update.message.text
-    context.user_data['query'] = query
-    update.message.reply_text('Введите артикул!')
-    return 'get_article'
+def get_query_and_send_position(update, context):
+    try:
+        article, query, address = update.message.text.split('\n')
+        article, query, address = article.strip(), query.strip(), address.strip()
+        try:
+            article = int(article)
+        except ValueError:
+            article = int(get_article_by_inside_article(article))
+
+        context.user_data['article'] = article
+        context.user_data['query'] = query
+        context.user_data['address'] = address
+    except Exception:
+        update.message.reply_text('Неверный формат запроса!')
+        return cancel()
+    return send_position(update, context)
+
 
 def cancel(update, context):
     update.message.reply_text('Поиск отменен!', reply_markup=BOT_MAIN_MENU)
     context.user_data.clear()
     return ConversationHandler.END
 
-def get_article(update, context):
-    try:
-        article = int(update.message.text)
-    except ValueError:
-        update.message.reply_text('Неверный формат артикула!')
-        return cancel()
-    context.user_data['article'] = article
-    update.message.reply_text('Введите адресс!', reply_markup=SKIP_MENU)
-    return 'get_address'
-
-
-def get_address(update, context):
-    address = update.message.text
-    context.user_data['address'] = address
-    return send_position(update, context)
-
 
 def send_position(update, context):
-    print('send_position')
-    pos= position.get_position(context.user_data['query'], context.user_data['address'], context.user_data['article'])
+    pos = position.get_position(context.user_data['query'],
+                                context.user_data['address'], context.user_data['article'])
     update.message.reply_text('Позиция: {}'.format(pos), reply_markup=BOT_MAIN_MENU)
     return ConversationHandler.END
 
@@ -73,15 +68,11 @@ def send_position(update, context):
 get_position_conversation = ConversationHandler(
     entry_points=[MessageHandler(Filters.text(['Поиск']), search)],
     states={
-        'get_query': [MessageHandler(Filters.text, get_query)],
-        'get_article': [MessageHandler(Filters.text, get_article)],
-        'get_address': [MessageHandler(Filters.text, get_address)],
-        'send_position': [MessageHandler(Filters.text, send_position)],
+        'get_query_and_send_position': [MessageHandler(Filters.text, get_query_and_send_position)],
     },
     fallbacks=[CommandHandler('cancel', cancel)],
 )
 
-        
 
 updater = Updater(token=TELEGRAM_TOKEN)
 for command, handler in [

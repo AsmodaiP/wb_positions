@@ -1,7 +1,8 @@
-from db.scheme import TelegramUser, UserQueries, Positions, PickUps, Base
-from db.db import session
-from utils.get_dst import get_coordinate_by_address
 import datetime
+
+from db.db import session
+from db.scheme import FavoriteQueries, PickUps, TelegramUser, UserQueries
+from utils.get_dst import get_coordinate_by_address, get_dst
 
 
 class BaseRepository:
@@ -62,18 +63,24 @@ class PickUpsRepository(BaseRepository):
             latitude=latitude,
             longitude=longitude,
             wb_dst=wb_dst,
+            created_at=datetime.datetime.now(),
+            updated_at=datetime.datetime.now(),
         )
-        if self.get(address):
-            self.update(address, latitude=latitude, longitude=longitude)
         self.session.add(pickup)
         return pickup
 
     def get_by_address(self, address) -> PickUps:
-        return self.session.query(PickUps).filter_by(address=address).first()
-        
-    def create_by_address(self, address):
-        latitude, longitude = get_coordinate_by_address(address)
-        return self.create(address, latitude, longitude)
+        pickup = self.session.query(PickUps).filter_by(address=address).first()
+        if not pickup:
+            return
+        return pickup
+
+    def create_by_address(self, address) -> PickUps:
+        coordinate = get_coordinate_by_address(address)
+        latitude = coordinate['latitude']
+        longitude = coordinate['longitude']
+        wb_dst = get_dst(address, longitude, latitude)
+        return self.create(address, latitude, longitude, ','.join(wb_dst))
 
     def get(self, address):
         return self.session.query(PickUps).filter_by(address=address).first()
@@ -123,5 +130,38 @@ class UserQueriesRepository(BaseRepository):
 
     def commit(self):
         self.session.commit()
+
+
+class FavoriteQueriesRepository(BaseRepository):
+    def create(self, user_id, query, article, address=None):
+        date = datetime.datetime.now()
+
+        favorite_query = FavoriteQueries(
+            telegram_user_id=user_id,
+            article=article,
+            query=query,
+            created_at=date,
+            updated_at=date,
+        )
+        self.session.add(favorite_query)
+        return favorite_query
+
+    def get(self, user_id):
+        return self.session.query(FavoriteQueries).filter_by(user_id=user_id).first()
+
+    def update(self, user_id, **kwargs):
+        favorite_query = self.get(user_id)
+        for key, value in kwargs.items():
+            setattr(favorite_query, key, value)
+        return favorite_query
+
+    def delete(self, user_id):
+        favorite_query = self.get(user_id)
+        self.session.delete(favorite_query)
+        return favorite_query
+
+    def commit(self):
+        self.session.commit()
+
 
 pickup_repository = PickUpsRepository(session)

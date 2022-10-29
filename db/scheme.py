@@ -1,10 +1,7 @@
-import datetime
-from stat import FILE_ATTRIBUTE_ARCHIVE
-from sqlalchemy import create_engine
-from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, TIMESTAMP, Float, Date
-from sqlalchemy.orm import mapper, sessionmaker, relationship
 
+from sqlalchemy import TIMESTAMP, Column, Float, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
@@ -28,13 +25,26 @@ class TelegramUser(BaseModel):
     last_name = Column(String(255), nullable=False)
     username = Column(String(255), nullable=False)
     user_queries = relationship("UserQueries", back_populates="telegram_user")
+    favorite_queries = relationship("FavoriteQueries", back_populates="telegram_user")
 
     def __repr__(self):
         return "<{0.__class__.__name__}(id={0.id!r}, chat_id={0.telegram_id!r})>".format(self)
 
 
+class FavoriteQueries(BaseModel):
+    __tablename__ = 'favorite_queries'
+
+    telegram_user_id = Column(Integer, ForeignKey('telegram_users.id'))
+    telegram_user = relationship("TelegramUser", back_populates="favorite_queries")
+    query = relationship("UserQueries")
+    query_id = Column(Integer, ForeignKey('user_queries.id'))
+
+    def __repr__(self):
+        return "<{0.__class__.__name__}(id={0.id!r}, query={0.query!r})>".format(self)
+
+
 class UserQueries(BaseModel):
-    __tablename__ = 'users_articles'
+    __tablename__ = 'user_queries'
 
     telegram_user_id = Column(Integer, ForeignKey('telegram_users.id'), nullable=False)
     telegram_user = relationship("TelegramUser", back_populates="user_queries")
@@ -43,7 +53,7 @@ class UserQueries(BaseModel):
     address = Column(String(255), nullable=False)
 
     def __repr__(self):
-        return "<{0.__class__.__name__}(id={0.id!r}, telegram_user_id={0.telegram_user_id!r}, article_id={0.article_id!r})>".format(self)
+        return "<{0.__class__.__name__}(id={0.id!r}, query={0.query!r})>".format(self)
 
 
 class Positions(BaseModel):

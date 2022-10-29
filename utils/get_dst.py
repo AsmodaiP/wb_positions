@@ -11,15 +11,13 @@ def get_dst(address, longitude, latitude):
     headers = {
         'x-requested-with': 'XMLHttpRequest',
     }
-    
-    
+
     response = requests.post(url, headers=headers, data=json_data)
     coocie_list = response.headers['Set-Cookie'].split(';')
     for cookie in coocie_list:
         if 'dst' in cookie:
             return cookie.split('=')[2].split('_')
-    return 
-
+    return
 
 
 def get_coordinate_by_address(address):
@@ -31,11 +29,9 @@ def get_coordinate_by_address(address):
     }
     response = requests.get(url, params=params)
     json_response = response.json()
-    longitude, latitude = json_response['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos'].split(' ')
+    featureMember = json_response['response']['GeoObjectCollection']['featureMember'][0]
+    longitude, latitude = featureMember['GeoObject']['Point']['pos'].split(' ')
     return {
         'longitude': longitude,
         'latitude': latitude
     }
-
-address= 'просп. Васильева, 31, Валдай, Новгородская обл., 175400'
-print(get_dst( address, **get_coordinate_by_address(address)))
