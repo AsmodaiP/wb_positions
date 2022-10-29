@@ -4,7 +4,7 @@ from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHa
 
 import utils.position as position
 from db.db import session
-from db.repositories import TelegramUserRepository
+from db.repositories import user_queries_repository, user_repository
 from utils.werocket.get_by_inside_article import get_article_by_inside_article
 
 bot = Bot(token=TELEGRAM_TOKEN)
@@ -15,8 +15,7 @@ def start(update, context):
     username = update.message.chat.username
     first_name = update.message.chat.first_name
     last_name = update.message.chat.last_name
-
-    user = TelegramUserRepository(session).create(chat_id, username, first_name, last_name)
+    user = user_repository.create(chat_id, username, first_name, last_name)
     session.commit()
     update.message.reply_text('Hello, {}!'.format(user.first_name), reply_markup=BOT_MAIN_MENU)
 
@@ -65,11 +64,16 @@ def send_position(update, context):
     article = context.user_data['article']
     addresses = context.user_data['addresses']
     result = {adress: position.get_position(query, adress, article) for adress in addresses}
-    print(result)
     msg = ''
     for address, pos in result.items():
         msg += '{}: {}\n'.format(address, pos)
-
+        user_queries_repository.create(
+            user_id=update.message.chat_id,
+            query=query,
+            article=article,
+            address=address,
+            position=pos)
+        user_queries_repository.commit()
     update.message.reply_text(msg, reply_markup=BOT_MAIN_MENU)
     return ConversationHandler.END
 

@@ -14,7 +14,6 @@ def get_position(query, address, target_id):
         pickup_repository.commit()
         dst = pickup.wb_dst
     position = parser(query, dst, int(target_id))
-    print((query, dst, target_id))
     return position
 
 

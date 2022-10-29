@@ -51,17 +51,10 @@ class UserQueries(BaseModel):
     article = Column(Integer, nullable=False)
     query = Column(String(255), nullable=False)
     address = Column(String(255), nullable=False)
+    position = Column(Integer, nullable=False)
 
     def __repr__(self):
         return "<{0.__class__.__name__}(id={0.id!r}, query={0.query!r})>".format(self)
-
-
-class Positions(BaseModel):
-    __tablename__ = 'positions'
-
-    article = Column(Integer, nullable=False)
-    query = Column(String(255), nullable=False)
-    address = Column(String(255), nullable=False)
 
 
 class PickUps(BaseModel):

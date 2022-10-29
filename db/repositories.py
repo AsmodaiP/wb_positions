@@ -101,13 +101,15 @@ class PickUpsRepository(BaseRepository):
 
 
 class UserQueriesRepository(BaseRepository):
-    def create(self, user_id, query, article, address=None):
+    def create(self, user_id, query, article, address, position):
         date = datetime.datetime.now()
 
         user_query = UserQueries(
             telegram_user_id=user_id,
             article=article,
             query=query,
+            address=address,
+            position=position,
             created_at=date,
             updated_at=date,
         )
@@ -165,3 +167,6 @@ class FavoriteQueriesRepository(BaseRepository):
 
 
 pickup_repository = PickUpsRepository(session)
+user_repository = TelegramUserRepository(session)
+user_queries_repository = UserQueriesRepository(session)
+favorite_queries_repository = FavoriteQueriesRepository(session)
