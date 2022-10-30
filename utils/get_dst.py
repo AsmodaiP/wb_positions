@@ -1,12 +1,13 @@
 import requests
 
 
-def get_dst(address, longitude, latitude):
+def get_dst(address):
+    coordinate = get_coordinate_by_address(address)
     url = 'https://www.wildberries.ru/webapi/geo/saveprefereduserloc'
     json_data = {
         'address': address,
-        'longitude': longitude,
-        'latitude': latitude
+        'longitude': coordinate['longitude'],
+        'latitude': coordinate['latitude'],
     }
     headers = {
         'x-requested-with': 'XMLHttpRequest',

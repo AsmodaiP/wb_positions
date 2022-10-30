@@ -51,6 +51,7 @@ class UserQueries(BaseModel):
     article = Column(Integer, nullable=False)
     query = Column(String(255), nullable=False)
     address = Column(String(255), nullable=False)
+    dst = Column(String, nullable=False)
     position = Column(Integer, nullable=False)
 
     def __repr__(self):

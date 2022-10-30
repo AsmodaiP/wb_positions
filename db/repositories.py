@@ -57,6 +57,13 @@ class TelegramUserRepository(BaseRepository):
 
 
 class PickUpsRepository(BaseRepository):
+
+    async def async_get_by_address(self, address):
+        pickup = self.get_by_address(address)
+        if pickup:
+            return pickup
+        return self.create_by_address(address)
+
     def create(self, address, latitude, longitude, wb_dst):
         pickup = PickUps(
             address=address,
@@ -101,7 +108,7 @@ class PickUpsRepository(BaseRepository):
 
 
 class UserQueriesRepository(BaseRepository):
-    def create(self, user_id, query, article, address, position):
+    def create(self, user_id, query, article, address, dst, position):
         date = datetime.datetime.now()
 
         user_query = UserQueries(
@@ -110,6 +117,7 @@ class UserQueriesRepository(BaseRepository):
             query=query,
             address=address,
             position=position,
+            dst=dst,
             created_at=date,
             updated_at=date,
         )

@@ -7,6 +7,7 @@ from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHa
 import utils.position as position
 from db.db import session
 from db.repositories import user_queries_repository, user_repository
+from utils.get_dst import get_dst
 from utils.get_popular_query import get_popular_query
 from utils.werocket.get_by_inside_article import get_article_by_inside_article
 
@@ -79,20 +80,22 @@ def send_position(update, context):
     addresses = context.user_data['addresses']
     result = {}
     for address in addresses:
-        pos = position.get_position(query, address, article)
-        update.message.reply_text('Адрес: {}\nРезультат: {}'.format(address, pos))
-        result[address] = pos
-    msg = 'Результаты поиска: \n'
-    for address, pos in result.items():
-        msg += '{}:  {}\n'.format(address, pos)
+        dst = ','.join(get_dst(address))
+        pos = position.get_position(query, dst, article)
         user_queries_repository.create(
             user_id=update.message.chat_id,
             query=query,
             article=article,
             address=address,
             position=pos)
-        user_queries_repository.commit()
-    update.message.reply_text(msg, reply_markup=BOT_MAIN_MENU)
+        update.message.reply_text('Адрес: {}\nРезультат: {}'.format(address, pos))
+        result[address] = pos
+    if len(addresses) > 1:
+        msg = 'Результаты поиска: \n'
+        for address, pos in result.items():
+            msg += '{}:  {}\n'.format(address, pos)
+        update.message.reply_text(msg, reply_markup=BOT_MAIN_MENU)
+    user_queries_repository.commit()
     return ConversationHandler.END
 
 
@@ -167,13 +170,20 @@ def send_more_popular_position(update, context):
     queries = get_popular_query(query)[:10]
     result = {query['text']: {} for query in queries}
     for address in addresses:
+        dst = ','.join(get_dst(address))
         for query in queries:
-            pos = position.get_position(query['text'], address, article)
+            pos = position.get_position(query['text'], dst, article)
             result[query['text']][address] = pos
-            update.message.reply_text(
-                'Адрес: {}\nЗапрос: {}\nРезультат: {}'.format(address, query['text'], pos))
-        msg = 'Результаты поиска: \n Адрес: {}\n'.format(address)
+            user_queries_repository.create(
+                user_id=update.message.chat_id,
+                query=query['text'],
+                article=article,
+                address=address,
+                dst=dst,
+                position=pos if pos else 0)
 
+    msg = 'Результаты поиска: \n Адрес: {}\n'.format(address)
+    user_queries_repository.commit()
     for address in addresses:
         msg = 'Результаты поиска: \n'
         msg += 'Адрес: {}\n'.format(address)
