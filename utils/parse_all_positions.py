@@ -5,14 +5,16 @@ from get_popular_query import get_popular_query
 from position import get_position
 from tqdm import tqdm
 
+from get_dst import get_dst
+
 
 def parse_all_query(query, addresses, article):
     queries = get_popular_query(query)
     result = {query['text']: {} for query in queries}
     for address in addresses:
+        dst = ','.join(get_dst(address))
         for query in tqdm(queries, desc='Поиск по address: {}'.format(address)):
-
-            pos = get_position(query['text'], address, article)
+            pos = get_position(query['text'], dst, article)
             result[query['text']][address] = pos
         with open('result.json', 'w') as f:
             json.dump(result, f, indent=4, ensure_ascii=False)

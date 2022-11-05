@@ -26,14 +26,11 @@ class TelegramUserRepository(BaseRepository):
     def create_or_update(self, chat_id, username, first_name, last_name):
         if self.get(chat_id):
             return self.update(chat_id, username=username, first_name=first_name, last_name=last_name)
-        date = datetime.datetime.now()
         user = TelegramUser(
             chat_id=chat_id,
             username=username,
             first_name=first_name,
             last_name=last_name,
-            created_at=date,
-            updated_at=date,
         )
         self.session.add(user)
         return user
@@ -70,8 +67,6 @@ class PickUpsRepository(BaseRepository):
             latitude=latitude,
             longitude=longitude,
             wb_dst=wb_dst,
-            created_at=datetime.datetime.now(),
-            updated_at=datetime.datetime.now(),
         )
         self.session.add(pickup)
         return pickup
@@ -138,20 +133,21 @@ class UserQueriesRepository(BaseRepository):
         self.session.delete(user_query)
         return user_query
 
+    def get_last_position_by_query_and_address(self, query, address):
+        return self.session.query(UserQueries).filter_by(
+            query=query, address=address).order_by(UserQueries.updated_at.desc()).first()
+
     def commit(self):
         self.session.commit()
 
 
 class FavoriteQueriesRepository(BaseRepository):
-    def create(self, user_id, query, article, address=None):
-        date = datetime.datetime.now()
+    def create(self, user_id, query, date_to_notify):
 
         favorite_query = FavoriteQueries(
             telegram_user_id=user_id,
-            article=article,
             query=query,
-            created_at=date,
-            updated_at=date,
+            date_to_notify=date_to_notify,
         )
         self.session.add(favorite_query)
         return favorite_query
@@ -173,6 +169,12 @@ class FavoriteQueriesRepository(BaseRepository):
     def commit(self):
         self.session.commit()
 
+    def get_all_with_overdue_date(self):
+        return self.session.query(FavoriteQueries).filter(
+            FavoriteQueries.date_to_notify < datetime.datetime.now()).all()
+
+
+favorite_queries_repository = FavoriteQueriesRepository(session)
 
 pickup_repository = PickUpsRepository(session)
 user_repository = TelegramUserRepository(session)

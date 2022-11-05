@@ -2,6 +2,7 @@
 from sqlalchemy import TIMESTAMP, Column, Float, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 Base = declarative_base()
 
@@ -10,8 +11,8 @@ class BaseModel(Base):
     __abstract__ = True
 
     id = Column(Integer, nullable=False, unique=True, primary_key=True, autoincrement=True)
-    created_at = Column(TIMESTAMP, nullable=False)
-    updated_at = Column(TIMESTAMP, nullable=False)
+    created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
+    updated_at = Column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
 
     def __repr__(self):
         return "<{0.__class__.__name__}(id={0.id!r})>".format(self)
@@ -38,6 +39,7 @@ class FavoriteQueries(BaseModel):
     telegram_user = relationship("TelegramUser", back_populates="favorite_queries")
     query = relationship("UserQueries")
     query_id = Column(Integer, ForeignKey('user_queries.id'))
+    date_to_notify = Column(TIMESTAMP, nullable=False)
 
     def __repr__(self):
         return "<{0.__class__.__name__}(id={0.id!r}, query={0.query!r})>".format(self)
